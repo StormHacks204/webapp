@@ -64,15 +64,45 @@ router.post("/", upload.single("image"), (req: Request, res: Response) => {
 });
 
 // Read all posts
-router.get("/:page", (req: Request, res: Response) => {
-    let page = Number(req.params.page || 1);
-    if (isNaN(page)) {
+router.get("/", (req: Request, res: Response) => {
+    let page = Number(req.query.page || 1);
+    const coordinate1 = req.query.x;
+	const coordinate2 = req.query.y;
+
+	if(!coordinate1 || !coordinate2){
+		return res.status(400).send("Coordinates are required");
+	}
+
+	if (isNaN(page)) {
         page = 1;
     }
 
-    const postQuery = PostModel.find()
-        .skip((page - 1) * 10)
-        .limit(10);
+	const radius = 5 / 6378.1; // Radius of the Earth in kilometers
+
+	const coordinate1Num = parseFloat(coordinate1 as string);
+	const coordinate2Num = parseFloat(coordinate2 as string);
+
+	if (isNaN(coordinate1Num) || isNaN(coordinate2Num)) {
+		return res.status(400).send("Coordinates must be numbers");
+	}
+
+	const minLat = coordinate1Num - radius;
+	const maxLat = coordinate1Num + radius;
+	const minLng = coordinate2Num - radius / Math.cos(coordinate1Num * (Math.PI / 180));
+	const maxLng = coordinate2Num + radius / Math.cos(coordinate1Num * (Math.PI / 180));
+
+	const postQuery = PostModel.find({
+		coordinates: {
+			$geoWithin: {
+				$box: [
+					[minLat, minLng],
+					[maxLat, maxLng]
+				]
+			}
+		}
+	})
+	.skip((page - 1) * 10)
+	.limit(10);
 
     postQuery.then((posts) => {
         res.status(200).send(posts);
