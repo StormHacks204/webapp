@@ -10,4 +10,4 @@ var userSchema = new Schema({
 
 const UserModel = model("User", userSchema);
 
-module.exports = { UserModel };
+export { UserModel };

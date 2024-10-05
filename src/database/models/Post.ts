@@ -17,6 +17,10 @@ var postSchema = new Schema({
     type: Date,
     required: true,
   },
+  coordinates: {
+    type: [Number],
+    required: true,
+  },
   user: [
     {
       type: Schema.Types.ObjectId,
@@ -27,4 +31,4 @@ var postSchema = new Schema({
 
 const PostModel = model("Post", postSchema);
 
-module.exports = { PostModel };
+export { PostModel };
