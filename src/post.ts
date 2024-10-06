@@ -2,15 +2,28 @@ import express, { Request, Response } from "express";
 import multer from "multer";
 import { PostModel } from "./database/models/Post";
 import { UserModel } from "./database/models/User";
+import path from "path";
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, "uploads/");
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      
+      const ext = path.extname(file.originalname);
+      
+      // add original extension to generated name
+      cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+    },
+});
+
+const upload = multer({ storage: storage });
 
 // Create a new post
-router.post(
-    "/",
-    upload.single("image"),
-    async (req: Request, res: Response) => {
+router.post("/", upload.single("image"), async (req: Request, res: Response) => {
         try {
             const file = req.file;
             const coordinates = JSON.parse(req.body.coordinates);
