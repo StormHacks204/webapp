@@ -40,6 +40,7 @@
 MONGO_KEY=<YOUR MONDO KEY>
 CLERK_SECRET_KEY=<YOUR CLERK SECRET KEY>
 PORT=<DESIRED PORT NUMBER> # Optional, defaults to 5000 
+CLERK_PUBLISHABLE_KEY=<YOUR CLERK PUBLISHABLE KEY>
 ```
 5. Place a `.env` file in the client directory with the following contents:
 ```env
