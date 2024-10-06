@@ -43,11 +43,7 @@ router.post("/", upload.single("image"), async (req: Request, res: Response) => 
             return res
                 .status(400)
                 .send("Coordinates must be an array of two numbers");
-        } else if (req.body.date && typeof req.body.date !== "string") {
-            return res.status(400).send("Date must be a string");
-        } else if (req.body.date && !new Date(req.body.date).getTime()) {
-            return res.status(400).send("Invalid date");
-        }
+        } 
 
         const user = await UserModel.findOne({clerkId: req.auth.userId})
 
@@ -61,7 +57,7 @@ router.post("/", upload.single("image"), async (req: Request, res: Response) => 
             text: req.body.text,
             user: user._id,
             coordinates: coordinates,
-            date: new Date(req.body.date),
+            date: new Date().toString(),
             imageId: req.body.imageId || null,
         });
 
