@@ -7,68 +7,72 @@ const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 // Create a new post
-router.post("/", upload.single("image"), async (req: Request, res: Response) => {
-    try {
-        const file = req.file;
-        const coordinates = JSON.parse(req.body.coordinates);
-        if (file) {
-            req.body.imageId = file.filename;
+router.post(
+    "/",
+    upload.single("image"),
+    async (req: Request, res: Response) => {
+        try {
+            const file = req.file;
+            const coordinates = JSON.parse(req.body.coordinates);
+            if (file) {
+                req.body.imageId = file.filename;
+            }
+
+            if (!req.body.title || !req.body.text) {
+                return res.status(400).send("Title and text are required");
+            } else if (
+                typeof req.body.title !== "string" ||
+                typeof req.body.text !== "string"
+            ) {
+                return res.status(400).send("Title and text must be strings");
+            } else if (
+                req.body.title.length < 3 ||
+                req.body.title.length > 50
+            ) {
+                return res
+                    .status(400)
+                    .send("Title must be between 3 and 50 characters");
+            } else if (req.body.text.length < 3 || req.body.text.length > 500) {
+                return res
+                    .status(400)
+                    .send("Text must be between 3 and 500 characters");
+            } else if (req.body.userId && typeof req.body.userId !== "string") {
+                return res.status(400).send("Author must be a string");
+            } else if (
+                coordinates.length !== 2 ||
+                typeof coordinates[0] !== "number" ||
+                typeof coordinates[1] !== "number"
+            ) {
+                return res
+                    .status(400)
+                    .send("Coordinates must be an array of two numbers");
+            }
+
+            const user = await UserModel.findOne({ clerkId: req.auth.userId });
+
+            if (!user) {
+                return res.status(404).send("User not found");
+            }
+
+            // Create a new post
+            const post = new PostModel({
+                title: req.body.title,
+                text: req.body.text,
+                user: user._id,
+                coordinates: coordinates,
+                date: new Date().toString(),
+                imageId: req.body.imageId || null,
+            });
+
+            post.save();
+
+            return res.status(201).send("Post created");
+        } catch (error) {
+            console.error(error);
+            return res.status(500).send("Internal server error");
         }
-
-        if (!req.body.title || !req.body.text) {
-            return res.status(400).send("Title and text are required");
-        } else if (
-            typeof req.body.title !== "string" ||
-            typeof req.body.text !== "string"
-        ) {
-            return res.status(400).send("Title and text must be strings");
-        } else if (req.body.title.length < 3 || req.body.title.length > 50) {
-            return res
-                .status(400)
-                .send("Title must be between 3 and 50 characters");
-        } else if (
-            req.body.text.length < 3 ||
-            req.body.text.length > 500
-        ) {
-            return res
-                .status(400)
-                .send("Text must be between 3 and 500 characters");
-        } else if (req.body.userId && typeof req.body.userId !== "string") {
-            return res.status(400).send("Author must be a string");
-        } else if (
-            coordinates.length !== 2 ||
-            typeof coordinates[0] !== "number" ||
-            typeof coordinates[1] !== "number"
-        ) {
-            return res
-                .status(400)
-                .send("Coordinates must be an array of two numbers");
-        } 
-
-        const user = await UserModel.findOne({clerkId: req.auth.userId})
-
-        if (!user) {
-            return res.status(404).send("User not found");
-        }
-
-        // Create a new post
-        const post = new PostModel({
-            title: req.body.title,
-            text: req.body.text,
-            user: user._id,
-            coordinates: coordinates,
-            date: new Date().toString(),
-            imageId: req.body.imageId || null,
-        });
-
-        post.save();
-
-        return res.status(201).send("Post created");
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send("Internal server error");
     }
-});
+);
 
 // Read all posts
 router.get("/", async (req: Request, res: Response) => {
@@ -103,8 +107,19 @@ router.get("/", async (req: Request, res: Response) => {
             coordinate2Num +
             radius / Math.cos(coordinate1Num * (Math.PI / 180));
 
-        const posts = await PostModel.find({}).populate('user');
-
+        const posts = await PostModel.find({
+            coordinates: {
+                $geoWithin: {
+                    $box: [
+                        [minLat, minLng],
+                        [maxLat, maxLng],
+                    ],
+                },
+            },
+        })
+            .populate("user")
+            .skip((page - 1) * 10)
+            .limit(10);
 
         return res.status(200).send(posts);
     } catch (error) {
@@ -175,15 +190,6 @@ router.put("/:id", (req: Request, res: Response) => {
                         .send("Coordinates must be an array of two numbers");
                 }
                 post.coordinates = req.body.coordinates;
-            }
-
-            if (req.body.date) {
-                if (typeof req.body.date !== "string") {
-                    return res.status(400).send("Date must be a string");
-                } else if (!new Date(req.body.date).getTime()) {
-                    return res.status(400).send("Invalid date");
-                }
-                post.date = req.body.date;
             }
 
             post.save();
