@@ -5,6 +5,7 @@ import { UserModel } from "./database/models/User";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
+
 // Create a new post
 router.post("/", upload.single("image"), (req: Request, res: Response) => {
     const file = req.file;
@@ -193,6 +194,22 @@ router.delete("/:id", (req: Request, res: Response) => {
 
         res.status(200).send(`Delete post with ID: ${postId}`);
     });
+});
+
+router.get("/image/:id", (req: Request, res: Response) => {
+	const imageId = req.params.id;
+
+	res.sendFile(imageId, { root: "uploads" });
+});
+
+router.get("/user/:id", (req: Request, res: Response) => {
+	const userId = req.params.id;
+
+	const postQuery = PostModel.find({ userId: userId });
+
+	postQuery.then((posts) => {
+		res.status(200).send(posts);
+	});
 });
 
 export default router;
