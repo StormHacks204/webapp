@@ -7,37 +7,38 @@ const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 // Create a new post
-router.post("/", upload.single("image"), (req: Request, res: Response) => {
+router.post("/", upload.single("image"), async (req: Request, res: Response) => {
     try {
         const file = req.file;
+        const coordinates = JSON.parse(req.body.coordinates);
         if (file) {
             req.body.imageId = file.filename;
         }
 
-        if (!req.body.title || !req.body.content) {
-            return res.status(400).send("Title and content are required");
+        if (!req.body.title || !req.body.text) {
+            return res.status(400).send("Title and text are required");
         } else if (
             typeof req.body.title !== "string" ||
-            typeof req.body.content !== "string"
+            typeof req.body.text !== "string"
         ) {
-            return res.status(400).send("Title and content must be strings");
+            return res.status(400).send("Title and text must be strings");
         } else if (req.body.title.length < 3 || req.body.title.length > 50) {
             return res
                 .status(400)
                 .send("Title must be between 3 and 50 characters");
         } else if (
-            req.body.content.length < 3 ||
-            req.body.content.length > 500
+            req.body.text.length < 3 ||
+            req.body.text.length > 500
         ) {
             return res
                 .status(400)
-                .send("Content must be between 3 and 500 characters");
+                .send("Text must be between 3 and 500 characters");
         } else if (req.body.userId && typeof req.body.userId !== "string") {
             return res.status(400).send("Author must be a string");
         } else if (
-            req.body.coordinates.length !== 2 ||
-            typeof req.body.coordinates[0] !== "number" ||
-            typeof req.body.coordinates[1] !== "number"
+            coordinates.length !== 2 ||
+            typeof coordinates[0] !== "number" ||
+            typeof coordinates[1] !== "number"
         ) {
             return res
                 .status(400)
@@ -48,32 +49,33 @@ router.post("/", upload.single("image"), (req: Request, res: Response) => {
             return res.status(400).send("Invalid date");
         }
 
+        const user = await UserModel.findOne({clerkId: "100"})
+
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+
+        // Create a new post
         const post = new PostModel({
             title: req.body.title,
-            content: req.body.content,
-            userId: req.body.userId,
-            coordinates: req.body.coordinates,
-            date: req.body.date,
+            text: req.body.text,
+            user: user._id,
+            coordinates: coordinates,
+            date: new Date(req.body.date),
             imageId: req.body.imageId || null,
-            user: UserModel.findById(req.body.userId).then((user) => {
-                if (!user) {
-                    return res.status(404).send("User not found");
-                }
-                return user;
-            }),
         });
 
         post.save();
 
-        res.status(201).send("Post created");
+        return res.status(201).send("Post created");
     } catch (error) {
         console.error(error);
-        res.status(500).send("Internal server error");
+        return res.status(500).send("Internal server error");
     }
 });
 
 // Read all posts
-router.get("/", (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
     try {
         let page = Number(req.query.page || 1);
         const coordinate1 = req.query.x;
@@ -105,22 +107,10 @@ router.get("/", (req: Request, res: Response) => {
             coordinate2Num +
             radius / Math.cos(coordinate1Num * (Math.PI / 180));
 
-        const postQuery = PostModel.find({
-            coordinates: {
-                $geoWithin: {
-                    $box: [
-                        [minLat, minLng],
-                        [maxLat, maxLng],
-                    ],
-                },
-            },
-        })
-            .skip((page - 1) * 10)
-            .limit(10);
+        const posts = await PostModel.find({}).populate('user');
 
-        postQuery.then((posts) => {
-            res.status(200).send(posts);
-        });
+
+        return res.status(200).send(posts);
     } catch (error) {
         console.error(error);
         res.status(500).send("Internal server error");
@@ -162,8 +152,8 @@ router.put("/:id", (req: Request, res: Response) => {
                 post.title = req.body.title;
             }
 
-            if (req.body.content) {
-                post.text = req.body.content;
+            if (req.body.text) {
+                post.text = req.body.text;
             }
 
             if (req.body.hasImage) {
