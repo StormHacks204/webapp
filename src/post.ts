@@ -131,6 +131,7 @@ router.get("/", async (req: Request, res: Response) => {
             },
         })
             .populate("user")
+            .sort({ date: -1})
             .skip((page - 1) * 10)
             .limit(10);
 
