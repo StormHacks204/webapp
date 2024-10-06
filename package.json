@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/StormHacks204/webapp#readme",
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.0.48",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "mongodb": "^6.9.0",

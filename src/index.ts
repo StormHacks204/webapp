@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { client } from "./database/mongo";
 import { Express } from "express";
 import express from "express";
-
+import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node'
 import postRouter from "./post";
 
 dotenv.config();
@@ -13,6 +13,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-app.use("/posts", postRouter);
+app.use("/posts", ClerkExpressRequireAuth(), postRouter);
 
 export default client;
