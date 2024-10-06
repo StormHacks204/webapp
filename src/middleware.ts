@@ -1,33 +1,26 @@
-// import { Response, Request, NextFunction } from "express";
+import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node'
+import { NextFunction } from 'express';
+import { UserModel } from './database/models/User';
 
-// import {verifyToken} from '@clerk/clerk-sdk-node';
-
-// declare global {
-//     namespace Express {
-//       interface Request {
-//         userId?: string;
-//       }
-//     }
-//   }
-  
-// const clerk = new Clerk({
-//     apiKey: process.env.CLERK_KEY,
-//     apiVersion: 2, // Make sure to specify the correct version
-//   });
-
-//   export const authenticateUser = async (req: Request, res:Response, next: NextFunction) => {
-//     try {
-//       const authHeader = req.body;
-
-//       if (!authHeader) {
-//         return res.status(401).json("Authorization header missing")
-//       }
-//       const { userId } = await clerk.sessions.verifySession(authHeader.clerk_id as string);
-
-//       req.userId = userId;
+export function ClerkRequireAuthAndCreateAcc(req: Request, res: Response, next: NextFunction): void {
+  try {
+    ClerkExpressRequireAuth()(req , res, async (err: any) => {
+      if (err) {
+        return next(err);
+      }
       
-//       next();
-//     } catch (err) {
-//       return res.status(401).json({ message: 'Unauthorized' });
-//     }
-//   };
+      if (!await UserModel.findOne({clerkId: req.auth.userId})) {
+        
+        const user = new UserModel({
+          clerkId: req.auth.userId
+        })
+
+        await user.save()
+      }
+
+      next();
+    });
+  } catch (e) {
+    console.log(e)
+  }
+}

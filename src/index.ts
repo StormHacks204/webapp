@@ -7,6 +7,7 @@ import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node'
 import postRouter from "./post";
 import logger from "morgan";
 import mongoose from "mongoose";
+import { ClerkRequireAuthAndCreateAcc } from "./middleware";
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
@@ -25,6 +26,6 @@ mongoose.connection.on("open", function (ref) {
 	console.log("Connected to mongo server.");
 });
 
-app.use("/posts", ClerkExpressRequireAuth(), postRouter);
+app.use("/posts", ClerkRequireAuthAndCreateAcc, postRouter);
 
 export default client;
