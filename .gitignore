@@ -130,6 +130,6 @@ dist
 .pnp.*
 
 build/
-uploads/*.jpg
-uploads/*.png
-uploads/*.jpeg
+# uploads/*.jpg
+# uploads/*.png
+# uploads/*.jpeg
